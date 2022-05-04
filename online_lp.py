@@ -2,7 +2,7 @@ import numpy as np
 
 class OnlineOptimization:
     def __init__(self, cost_function, algorithm=1 , d=None, max_const=500, max_var=500, alpha=0.05, scale=False):
-        """ Optimize online covering/packing problems:
+        """ Optimize online lp covering/packing problems:
 
         This class declares the LP problem, updates and sattisfies constraints in an online manner
         and returns an optimal solution.
