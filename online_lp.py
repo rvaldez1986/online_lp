@@ -11,7 +11,7 @@ class OnlineOptimization:
         Arguments:
         cost_function -- function that returns the cost for a specific index i (c)
         algorithm -- algorithm used to solve the sub-instance problem
-        d -- max size of constraints in an specific updated (d = max_j |S(j)|)
+        d -- max size of constraints in an specific updated (d = max_j |A[j,:]|)
         max_const -- maximum memory allocated for constraints (m)
         max_var -- maximum memory allocated for variables (n)
         alpha -- value set for continous updating y[j]
@@ -104,7 +104,7 @@ class OnlineOptimization:
         variables = max(np.where(self.A>0)[1])
         tc = 0
         for i in range(variables+1):
-            tc += self.x[i]*self.c(i)
+            tc += self.x[i]*self.c(i)   # cost function can be lazily defined
         return tc
     
     def get_dual_solution(self):
@@ -162,3 +162,20 @@ class OnlineOptimization:
         constraints = max(np.where(self.A>0)[0])
         variables = max(np.where(self.A>0)[1])
         return self.A[:(constraints+1), :(variables+1)]
+
+    def get_x(self):
+        variables = max(np.where(self.A>0)[1])
+        return self.x[:(variables+1)]
+
+    def get_c(self):
+        variables = max(np.where(self.A>0)[1])
+        cost = []
+        for i in range(variables+1):
+            cost.append(self.c(i)) # cost function can be lazily defined
+        return np.array(cost)
+
+    def get_y(self):
+        constraints = max(np.where(self.A>0)[0])
+        return self.y[:(constraints+1)]
+
+
