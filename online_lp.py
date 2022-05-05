@@ -101,10 +101,10 @@ class OnlineOptimization:
             self.continous_update_primal_dual2(i_indexes)
         
     def get_primal_solution(self):
-        nx = self.x[self.x>0]
+        variables = max(np.where(self.A>0)[1])
         tc = 0
-        for i,x_i in enumerate(nx):
-            tc += x_i*self.c(i)
+        for i in range(variables+1):
+            tc += self.x[i]*self.c(i)
         return tc
     
     def get_dual_solution(self):
@@ -158,7 +158,7 @@ class OnlineOptimization:
         self.xp = (self.x >= Theta_s)*1
         return self.xp
   
-    def get_S(self):
+    def get_A(self):
         constraints = max(np.where(self.A>0)[0])
         variables = max(np.where(self.A>0)[1])
         return self.A[:(constraints+1), :(variables+1)]
