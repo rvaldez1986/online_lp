@@ -151,7 +151,7 @@ class OnlineOptimization:
         variables = max(np.where(self.A>0)[1])
         return np.amin(self.Theta_M[:(variables+1), :self.theta_count], axis=1)
 
-    def get_integral_solution(self):
+    def get_randomized_integral_solution(self):
         if self.theta_count < max(math.ceil(2*np.log(self.j)), 1):
             raise Exception("not enough simulations generated for the number of constraints")
         Theta_s = self.get_Theta_s()
