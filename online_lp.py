@@ -59,10 +59,10 @@ class OnlineOptimization:
 
     def fractional_update_primal_dual(self, i_indexes):
         self.add_x_constraint(self.j, i_indexes)
-        sj_len = len(i_indexes)
+        Aj_len = len(i_indexes)
         while self.check_constraint(i_indexes):
             for i in i_indexes:
-                self.x[i] = self.x[i]*(1 + 1/self.c(i)) + 1/(sj_len*self.c(i))
+                self.x[i] = self.x[i]*(1 + 1/self.c(i)) + 1/(Aj_len*self.c(i))
             self.y[self.j] += 1
         self.j += 1  # increase constraint counter
 
@@ -74,7 +74,7 @@ class OnlineOptimization:
                 v0 = np.log(1+self.d)/self.c(i)
                 i_in_sj = np.asarray(np.where(self.A[:,i]>0))[0]
                 v1 = np.sum(self.y[i_in_sj])
-                self.x[i] = 1/2*(np.exp(v0*v1)-1)
+                self.x[i] = (1/self.d)*(np.exp(v0*v1)-1)
         self.j += 1  # increase constraint counter
 
     def continous_update_primal_dual2(self, i_indexes):
@@ -143,7 +143,7 @@ class OnlineOptimization:
         if self.theta_count < max(math.ceil(2*np.log(self.j)), 1):
             variables = max(np.where(self.A>0)[1])
             n_simul = max(math.ceil(2*np.log(self.j)), 1) - self.theta_count
-            thetas = np.random.uniform(size=(variables, n_simul))
+            thetas = np.random.uniform(size=(variables+1, n_simul))
             self.Theta_M[:(variables+1), self.theta_count:(self.theta_count + n_simul)] = thetas
             self.theta_count += n_simul
     
