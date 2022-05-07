@@ -2,7 +2,14 @@ import numpy as np
 import math
 
 class OnlineOptimization:
-    def __init__(self, cost_function, algorithm, d=None, max_const=500, max_var=500, alpha=0.05, scale=False, seed=1):
+    def __init__(self, 
+                    cost_function, algorithm, d=None, 
+                    max_const=500, max_var=500, 
+                    alpha=0.05, 
+                    scale=False, 
+                    ris = False,
+                    seed=1
+                ):
         """ Optimize online lp covering/packing problems:
 
         This class declares the LP problem, updates and sattisfies constraints in an online manner
@@ -16,6 +23,7 @@ class OnlineOptimization:
         max_var -- maximum memory allocated for variables (n)
         alpha -- value set for continous updating y[j]
         scale -- (when needed) scale dual so it becomes fractional and feasible
+        ris -- apply randomized integral solution
         seed -- np seed to reproduce rand number generation
         
         Return:
@@ -37,6 +45,7 @@ class OnlineOptimization:
         if self.scale and not self.d:
             raise Exception("d must be provided if scale is set to true")
         self.scale_factor = 1 # set up in update
+        self.ris = ris # flag to apply randomized integral solution
         
         self.j = 0  # constraint counter (rows of S)
         self.x = np.zeros(self.max_var)
@@ -85,6 +94,10 @@ class OnlineOptimization:
                 i_in_sj = np.asarray(np.where(self.A[:,i]>0))[0]
                 if self.x[i] == 0 and np.sum(self.y[i_in_sj]) == self.c(i):
                     self.x[i] = 1/self.d
+                if self.c(i) % self.alpha != 0:
+                    e_str = ("for index {}, the cost {} and alpha {} are not multiples, "
+                            "algorithm may not terminate".format(i, self.c(i), self.alpha))
+                    raise Exception(e_str)
             for i in i_indexes:
                 if self.x[i] >= 1/self.d:
                     i_in_sj = np.asarray(np.where(self.A[:,i]>0))[0]
@@ -99,6 +112,9 @@ class OnlineOptimization:
             self.continous_update_primal_dual(i_indexes)
         else:
             self.continous_update_primal_dual2(i_indexes)
+        # update random coefficients if ris = True
+        if self.ris:
+            self.gen_theta_rv() 
         
     def get_primal_solution(self):
         variables = max(np.where(self.A>0)[1])
