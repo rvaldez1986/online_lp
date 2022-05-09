@@ -23,7 +23,7 @@ class OnlineOptimization:
         max_var -- maximum memory allocated for variables (n)
         alpha -- value set for continous updating y[j]
         scale -- (when needed) scale dual so it becomes fractional and feasible
-        ris -- apply randomized integral solution
+        ris -- add integral solution
         seed -- np seed to reproduce rand number generation
         
         Return:
@@ -32,6 +32,8 @@ class OnlineOptimization:
 
         Check:
         check_primal_feasibility -- returns a true/false flag after checking the feasibility of the solution
+
+        
         """
         self.cost_function = cost_function
         self.algorithm = algorithm
@@ -105,13 +107,25 @@ class OnlineOptimization:
                     self.x[i] = (1/self.d)*np.exp(v1-1)
         self.j += 1
 
+    def ski_model_update(self):
+        self.add_x_constraint(self.j, [0, self.j+1])
+        c = (1+(1/self.c(0)))**self.c(0) - 1
+        if self.x[0] < 1:
+            self.x[self.j+1] = 1 - self.x[0]
+            self.x[0] = self.x[0] * (1+1/self.c(0)) + 1/(self.c(0)*c)
+            self.y[self.j] += 1
+        self.j += 1
+
     def update_primal_dual(self, i_indexes):
         if self.algorithm == 1:
             self.fractional_update_primal_dual(i_indexes)
         elif self.algorithm == 2:
             self.continous_update_primal_dual(i_indexes)
-        else:
+        elif self.algorithm == 3:
             self.continous_update_primal_dual2(i_indexes)
+        else:
+            # specific ski model update
+            self.ski_model_update()
         # update random coefficients if ris = True
         if self.ris:
             self.gen_theta_rv() 
@@ -167,13 +181,36 @@ class OnlineOptimization:
         variables = max(np.where(self.A>0)[1])
         return np.amin(self.Theta_M[:(variables+1), :self.theta_count], axis=1)
 
-    def get_randomized_integral_solution(self):
+    def do_randomized_integral_transformation(self):
         if self.theta_count < max(math.ceil(2*np.log(self.j)), 1):
             raise Exception("not enough simulations generated for the number of constraints")
+        variables = max(np.where(self.A>0)[1])
         Theta_s = self.get_Theta_s()
-        self.xp = (self.x >= Theta_s)*1
-        return self.xp
-  
+        self.xp = (self.x[:variables] >= Theta_s)*1
+        
+    def get_rand_integral_solution(self):
+        if not self.ris:
+            raise Exception("option not enabled")
+        self.do_randomized_integral_transformation()
+        variables = max(np.where(self.A>0)[1])
+        tc = 0
+        for i in range(variables+1):
+            tc += self.xp[i]*self.c(i)   # cost function can be lazily defined
+        return tc
+
+    def check_integral_solution_feasibility(self):
+        if not self.ris:
+            raise Exception("option not enabled")
+        self.do_randomized_integral_transformation() 
+        return_flag = True
+        return_flag = return_flag and np.all(self.xp >= 0)  # all x >= 0
+        constraints = np.unique(np.asarray(np.where(self.A>0))[0])
+        for j in constraints:
+            constraint_indexes = np.asarray(np.where(self.A[j,:]>0))[0]
+            check = np.sum(self.xp[constraint_indexes]) >= 1  # constraints greater or equal to 1
+            return_flag = return_flag and check
+        return return_flag
+    
     def get_A(self):
         constraints = max(np.where(self.A>0)[0])
         variables = max(np.where(self.A>0)[1])
